@@ -1,5 +1,6 @@
 // RUN: heir-opt %s | FileCheck %s
 
+// CHECK-LABEL: @test_arith_syntax
 func.func @test_arith_syntax() {
   %zero = arith.constant 1 : i8
   %cmod = arith.constant 17 : i8
@@ -8,8 +9,8 @@ func.func @test_arith_syntax() {
 
   // CHECK: arith_ext.barrett_reduce
   // CHECK: arith_ext.barrett_reduce
-  %barrett = arith_ext.barrett_reduce %zero { bitWidth = 4, modulo = 17 } : i8
-  %barrett_vec = arith_ext.barrett_reduce %c_vec { bitWidth = 4, modulo = 17 } : tensor<4xi8>
+  %barrett = arith_ext.barrett_reduce %zero { modulo = 17 } : i8
+  %barrett_vec = arith_ext.barrett_reduce %c_vec { modulo = 17 } : tensor<4xi8>
 
   // CHECK: arith_ext.subifge
   // CHECK: arith_ext.subifge

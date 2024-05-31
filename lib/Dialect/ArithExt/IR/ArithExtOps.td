@@ -17,15 +17,15 @@ class ArithExt_Op<string mnemonic, list<Trait> traits = []> :
 def ArithExt_BarrettReduceOp : ArithExt_Op<"barrett_reduce", [Pure, SameOperandsAndResultType]> {
   let summary = "Compute the first step of the Barrett reduction.";
   let description = [{
-    Let b = 2^bitWidth and q denote a statically known modulo. The Barrett
-    reduce operation computes barret_reduce x = floor(x * floor(b / q) / b).
+    Let q denote a statically known modulo and let b = 2^bitWidth where bitWidth
+    is the smallest bitWidth that contains the range [0, q). The Barrett reduce
+    operation computes barret_reduce x = floor(x * floor(b / q) / b).
 
-    Given 0 <= x < q^2, then this is will compute (x mod q) or (x mod q) + p.
+    Given 0 <= x < q^2, then this will compute (x mod q) or (x mod q) + p.
   }];
 
   let arguments = (ins
     SignlessIntegerLike:$input,
-    I64Attr:$bitWidth,
     I64Attr:$modulo
   );
   let results = (outs SignlessIntegerLike:$output);
