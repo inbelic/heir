@@ -32,6 +32,16 @@ def ArithExt_BarrettReduceOp : ArithExt_Op<"barrett_reduce", [Pure, SameOperands
   let assemblyFormat = "operands attr-dict `:` qualified(type($input))";
 }
 
+def ArithExt_NormalisedOp : ArithExt_Op<"normalised", [Pure, SameOperandsAndResultType]> {
+  let summary = "Denotes that the output value is in the range [0, q).";
+  let arguments = (ins
+    SignlessIntegerLike:$input,
+    I64Attr:$q
+  );
+  let results = (outs SignlessIntegerLike:$output);
+  let assemblyFormat = "operands attr-dict `:` qualified(type($input))";
+}
+
 def ArithExt_SubIfGEOp : ArithExt_Op<"subifge", [Pure, SameOperandsAndResultType]> {
   let summary = "Compute (x >= y) ? x - y : x.";
 

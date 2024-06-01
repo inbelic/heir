@@ -9,6 +9,8 @@
 #include <vector>
 
 #include "lib/Conversion/Utils.h"
+#include "lib/Dialect/ArithExt/IR/ArithExtDialect.h"
+#include "lib/Dialect/ArithExt/IR/ArithExtOps.h"
 #include "lib/Dialect/Polynomial/IR/Polynomial.h"
 #include "lib/Dialect/Polynomial/IR/PolynomialAttributes.h"
 #include "lib/Dialect/Polynomial/IR/PolynomialDialect.h"
@@ -902,17 +904,17 @@ static std::pair<Value, Value> bflyGS(ImplicitLocOpBuilder &b, Value A, Value B,
   // Since A + B -> [0, 2 * cmod) then RemUI will
   // compute the modulus
   auto gsPlus = b.create<arith::AddIOp>(A, B);
-  auto gsPlusModded = b.create<arith::RemUIOp>(gsPlus, cMod);
+  auto gsPlusModded = b.create<arith_ext::SubIfGEOp>(gsPlus, cMod);
 
   // Since A - rootB -> (-cmod, cmod) then we can add cmod such that the range
   // is shifted to (0, 2 * cmod) and use RemUI to compute the modulus
   auto gsMinus = b.create<arith::SubIOp>(A, B);
   auto gsMinusShifted = b.create<arith::AddIOp>(gsMinus, cMod);
-  auto gsMinusModded = b.create<arith::RemUIOp>(gsMinusShifted, cMod);
+  auto gsMinusModded = b.create<arith_ext::SubIfGEOp>(gsMinusShifted, cMod);
 
   // Since root * (A - B) -> [0, cmod^2) then RemUI will compute the modulus
   auto gsMinusRoot = b.create<arith::MulIOp>(gsMinusModded, root);
-  auto gsMinusRootModded = b.create<arith::RemUIOp>(gsMinusRoot, cMod);
+  auto gsMinusRootModded = b.create<arith_ext::SubIfGEOp>(gsMinusRoot, cMod);
 
   return {gsPlusModded, gsMinusRootModded};
 }
@@ -1083,12 +1085,15 @@ static Value fastNTT(ImplicitLocOpBuilder &b, RingAttr ring,
         DenseElementsAttr::get(rootsType, cmod.trunc(root.getBitWidth() + 1)));
 
     auto mulOp = b.create<arith::MulIOp>(result, nInv);
-    auto remOp = b.create<arith::RemUIOp>(mulOp, cModVec);
-    result = remOp.getResult();
+    auto barrettOp = b.create<arith_ext::BarrettReduceOp>(mulOp, ring.getCmod());
+    auto modOp = b.create<arith_ext::SubIfGEOp>(barrettOp, cModVec);
+    result = modOp.getResult();
   }
 
   // Truncate back to cmod bitwidth as nttRes < cmod
   auto truncOp = b.create<arith::TruncIOp>(inputType, result);
+
+  // auto resOp = b.create<arith_ext::NormalisedOp>(truncOp.getResult(), ring.getCmod());
 
   return truncOp.getResult();
 }

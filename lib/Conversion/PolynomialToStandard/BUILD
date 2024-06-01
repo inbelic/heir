@@ -14,6 +14,7 @@ cc_library(
     deps = [
         ":pass_inc_gen",
         "@heir//lib/Conversion:Utils",
+        "@heir//lib/Dialect/ArithExt/IR:Dialect",
         "@heir//lib/Dialect/Polynomial/IR:Polynomial",
         "@heir//lib/Dialect/Polynomial/IR:PolynomialAttributes",
         "@heir//lib/Dialect/Polynomial/IR:PolynomialOps",
