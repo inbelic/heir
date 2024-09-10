@@ -749,7 +749,7 @@ cannot be multiplied by 16.&lt;/p>
 &lt;tbody>
 &lt;tr>
 &lt;td style="text-align:center">&lt;code>inputs&lt;/code>&lt;/td>
-&lt;td>variadic of A type for LWE ciphertexts&lt;/td>
+&lt;td>variadic of any type&lt;/td>
 &lt;/tr>
 &lt;/tbody>
 &lt;/table>
@@ -764,7 +764,7 @@ cannot be multiplied by 16.&lt;/p>
 &lt;tbody>
 &lt;tr>
 &lt;td style="text-align:center">&lt;code>output&lt;/code>&lt;/td>
-&lt;td>A type for LWE ciphertexts&lt;/td>
+&lt;td>any type&lt;/td>
 &lt;/tr>
 &lt;/tbody>
 &lt;/table>
@@ -3959,7 +3959,9 @@ an LWE plaintext value that can then be encrypted.&lt;/p>
 &lt;pre tabindex="0">&lt;code>operation ::= `lwe.rlwe_encode` $input attr-dict `:` qualified(type($input)) `-&amp;gt;` qualified(type($output))
 &lt;/code>&lt;/pre>&lt;p>Encode an integer to yield an RLWE plaintext.&lt;/p>
 &lt;p>This op uses a an encoding attribute to encode the bits of the integer into
-an RLWE plaintext value that can then be encrypted.&lt;/p>
+an RLWE plaintext value that can then be encrypted. CKKS cleartext inputs may
+be floating points, and a scaling factor described by the encoding will be
+applied.&lt;/p>
 &lt;p>Examples:&lt;/p>
 &lt;pre tabindex="0">&lt;code>%Y = lwe.rlwe_encode %value {encoding = #enc, ring = #ring}: i1 to !lwe.rlwe_plaintext&amp;lt;encoding = #enc, ring = #ring&amp;gt;
 &lt;/code>&lt;/pre>&lt;p>Traits: &lt;code>AlwaysSpeculatableImplTrait&lt;/code>&lt;/p>
@@ -3982,7 +3984,7 @@ an RLWE plaintext value that can then be encrypted.&lt;/p>
 &lt;tbody>
 &lt;tr>
 &lt;td style="text-align:center">&lt;code>input&lt;/code>&lt;/td>
-&lt;td>signless-integer-like&lt;/td>
+&lt;td>signless-integer-like or floating-point-like&lt;/td>
 &lt;/tr>
 &lt;/tbody>
 &lt;/table>
@@ -5990,6 +5992,13 @@ this attribute contains the data &lt;code>[1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5
 Negative shift values are interpreted as right-rotations.&lt;/p>
 &lt;p>This corresponds to the &lt;code>rotate&lt;/code> operation in arithmetic FHE schemes like
 BGV.&lt;/p>
+&lt;p>This operation&amp;rsquo;s current behavior allows rotating multi-dimensional tensors
+by rotating along the tensor&amp;rsquo;s only non-unit dimension. This assumes the
+tensor is packed along the non-unit dimension.&lt;/p>
+&lt;p>// In the future, the op will be adjusted to support rotations of general
+// multi-dimensional tensors with a vector of rotation indices for each
+// dimension. The lowering will implement the correct operations to rotate
+// the tensor along the indices given its packing.&lt;/p>
 &lt;p>Examples:&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-mlir" data-lang="mlir">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#000">%0&lt;/span> &lt;span style="color:#000;font-weight:bold">=&lt;/span> &lt;span style="color:#000;font-weight:bold">...&lt;/span> &lt;span style="color:#000;font-weight:bold">:&lt;/span> &lt;span style="color:#204a87;font-weight:bold">tensor&lt;/span>&lt;span style="color:#000;font-weight:bold">&amp;lt;&lt;/span>&lt;span style="color:#0000cf;font-weight:bold">16x&lt;/span>&lt;span style="color:#204a87;font-weight:bold">i32&lt;/span>&lt;span style="color:#000;font-weight:bold">&amp;gt;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#000">%c7&lt;/span> &lt;span style="color:#000;font-weight:bold">=&lt;/span> arith&lt;span style="color:#000;font-weight:bold">.&lt;/span>&lt;span style="color:#204a87;font-weight:bold">constant&lt;/span> &lt;span style="color:#0000cf;font-weight:bold">7&lt;/span> &lt;span style="color:#000;font-weight:bold">:&lt;/span> &lt;span style="color:#204a87;font-weight:bold">i32&lt;/span>
