@@ -48,7 +48,12 @@ LogicalResult verifyModArithOpMod(OpType op) {
            "underlying type must be at least as large as modulus bitwidth + "
            "1 (for the sign bit), but found "
         << bitWidth << " while modulus requires width " << modWidth << ".";
-  return success();
+
+  if (op.getModulus().slt(0))
+    return op.emitOpError()
+           << "provided modulus  << op.getModulus().getSExtValue()
+           << is not a positive integer.";
+              return success();
 }
 
 LogicalResult AddOp::verify() { return verifyModArithOpMod<AddOp>(*this); }
@@ -58,6 +63,10 @@ LogicalResult SubOp::verify() { return verifyModArithOpMod<SubOp>(*this); }
 LogicalResult MulOp::verify() { return verifyModArithOpMod<MulOp>(*this); }
 
 LogicalResult MacOp::verify() { return verifyModArithOpMod<MacOp>(*this); }
+
+LogicalResult ReduceOp::verify() {
+  return verifyModArithOpMod<ReduceOp>(*this);
+}
 
 LogicalResult BarrettReduceOp::verify() {
   auto inputType = getInput().getType();
@@ -79,7 +88,10 @@ LogicalResult BarrettReduceOp::verify() {
            << bitWidth << " but w is " << expectedBitWidth << ".";
   }
 
-  return success();
+  if (getModulus().slt(0))
+    return emitOpError() << "provided modulus  << getModulus().getSExtValue()
+                         << is not a positive integer.";
+                            return success();
 }
 
 }  // namespace mod_arith

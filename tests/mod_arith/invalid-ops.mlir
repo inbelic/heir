@@ -27,3 +27,21 @@ func.func @test_bad_mod_warning(%lhs : i8, %rhs : i8) -> i8 {
   %res = mod_arith.add %lhs, %rhs {modulus = 135 }: i8
   return %res : i8
 }
+
+// -----
+
+// CHECK-NOT: @test_neg_mod_err
+func.func @test_neg_mod_err(%arg : i8) -> i8 {
+  // expected-error@+1 {{provided modulus -3 is not a positive integer.}}
+  %res = mod_arith.reduce %arg { modulus = -3 : i7 } : i8
+  return %res : i8
+}
+
+// -----
+
+// CHECK-NOT: @test_barrett_neg_mod_err
+func.func @test_barrett_neg_mod_err(%arg : i8) -> i8 {
+  // expected-error@+1 {{provided modulus -3 is not a positive integer.}}
+  %res = mod_arith.barrett_reduce %arg { modulus = -3 : i7 } : i8
+  return %res : i8
+}
