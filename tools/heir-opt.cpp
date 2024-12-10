@@ -21,6 +21,7 @@
 #include "lib/Dialect/LinAlg/Conversions/LinalgToTensorExt/LinalgToTensorExt.h"
 #include "lib/Dialect/ModArith/Conversions/ModArithToArith/ModArithToArith.h"
 #include "lib/Dialect/ModArith/IR/ModArithDialect.h"
+#include "lib/Dialect/ModArith/Transforms/Passes.h"
 #include "lib/Dialect/Openfhe/IR/OpenfheDialect.h"
 #include "lib/Dialect/Openfhe/Transforms/Passes.h"
 #include "lib/Dialect/Polynomial/Conversions/PolynomialToModArith/PolynomialToModArith.h"
@@ -199,6 +200,7 @@ int main(int argc, char **argv) {
 
   // Custom passes in HEIR
   cggi::registerCGGIPasses();
+  mod_arith::registerModArithPasses();
   lwe::registerLWEPasses();
   ::mlir::heir::polynomial::registerPolynomialPasses();
   secret::registerSecretPasses();

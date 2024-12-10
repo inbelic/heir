@@ -52,6 +52,7 @@ cc_binary(
         "@heir//lib/Dialect/LinAlg/Conversions/LinalgToTensorExt",
         "@heir//lib/Dialect/ModArith/Conversions/ModArithToArith",
         "@heir//lib/Dialect/ModArith/IR:Dialect",
+        "@heir//lib/Dialect/ModArith/Transforms",
         "@heir//lib/Dialect/Openfhe/IR:Dialect",
         "@heir//lib/Dialect/Openfhe/Transforms",
         "@heir//lib/Dialect/Openfhe/Transforms:ConfigureCryptoContext",

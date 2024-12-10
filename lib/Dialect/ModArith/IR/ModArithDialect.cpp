@@ -162,6 +162,86 @@ LogicalResult BarrettReduceOp::verify() {
   return success();
 }
 
+template <typename OpType>
+IntegerValueRange initCanonicalRange(OpType op) {
+  if (auto modType = dyn_cast<ModArithType>(op->getResult(0).getType())) {
+    APInt q = modType.getModulus().getValue();
+    return ConstantIntRanges::fromSigned(APInt(q.getBitWidth(), 0), q - 1);
+  }
+  // Doesn't currently support shaped types
+  return IntegerValueRange();
+}
+
+template <typename OpType>
+IntegerValueRange getCanonicalOpRanges(OpType op, ArrayRef<mlir::IntegerValueRange> inputRanges) {
+  auto opRange = initCanonicalRange(op);
+  if (opRange.isUninitialized()) return IntegerValueRange();
+  auto q = opRange.getValue().smax();
+
+  for (auto curRange : inputRanges) {
+    // Ensure that the input ranges exist
+    if (curRange.isUninitialized()) return IntegerValueRange();
+
+    // Ensure that the input ranges are with the canocial range [0, q)
+    APInt curMin = curRange.getValue().smin();
+    APInt curMax = curRange.getValue().smax();
+    if (curMin.getBitWidth() != q.getBitWidth()) return IntegerValueRange();
+    if (curMin.slt(0) || curMin.sgt(q) || curMax.sgt(q))
+      return IntegerValueRange();
+  }
+  return opRange;
+}
+
+void EncapsulateOp::inferResultRangesFromOptional(
+    ArrayRef<mlir::IntegerValueRange> inputRanges, SetIntLatticeFn setResultRange) {
+  // NOTE: this will cause failure when the inputRanges is a ConstantValue. This is
+  // because when invoking IntegerRangeValueLattice::onUpdate, we will try to update
+  // the SSA value to the constant but since the node type is not an integer/index value
+  // we will fail to create the IntegerAttr. This will work when the upstream is resolved
+  // tracked here: ADD ISSUE HERE.
+  setResultRange(getResult(), inputRanges[0]);
+}
+
+void ExtractOp::inferResultRangesFromOptional(
+    ArrayRef<mlir::IntegerValueRange> inputRanges, SetIntLatticeFn setResultRange) {
+  setResultRange(getResult(), inputRanges[0]);
+}
+
+void ReduceOp::inferResultRangesFromOptional(
+    ArrayRef<mlir::IntegerValueRange> inputRanges, SetIntLatticeFn setResultRange) {
+  setResultRange(getResult(), initCanonicalRange(*this));
+}
+
+void AddOp::inferResultRangesFromOptional(
+    ArrayRef<mlir::IntegerValueRange> inputRanges, SetIntLatticeFn setResultRange) {
+  setResultRange(getResult(), getCanonicalOpRanges(*this, inputRanges));
+}
+
+void SubOp::inferResultRangesFromOptional(
+    ArrayRef<mlir::IntegerValueRange> inputRanges, SetIntLatticeFn setResultRange) {
+  setResultRange(getResult(), getCanonicalOpRanges(*this, inputRanges));
+}
+
+void MulOp::inferResultRangesFromOptional(
+    ArrayRef<mlir::IntegerValueRange> inputRanges, SetIntLatticeFn setResultRange) {
+  setResultRange(getResult(), getCanonicalOpRanges(*this, inputRanges));
+}
+
+void MacOp::inferResultRangesFromOptional(
+    ArrayRef<mlir::IntegerValueRange> inputRanges, SetIntLatticeFn setResultRange) {
+  setResultRange(getResult(), getCanonicalOpRanges(*this, inputRanges));
+}
+
+void BarrettReduceOp::inferResultRangesFromOptional(
+    ArrayRef<mlir::IntegerValueRange> inputRanges, SetIntLatticeFn setResultRange) {
+  // TODO: complete
+}
+
+void SubIfGEOp::inferResultRangesFromOptional(
+    ArrayRef<mlir::IntegerValueRange> inputRanges, SetIntLatticeFn setResultRange) {
+  // TODO: complete
+}
+
 ParseResult ConstantOp::parse(OpAsmParser &parser, OperationState &result) {
   APInt parsedValue(64, 0);
   Type parsedType;
