@@ -7,12 +7,13 @@ include "lib/Dialect/ModArith/IR/ModArithTypes.td"
 include "mlir/IR/BuiltinAttributes.td"
 include "mlir/IR/CommonTypeConstraints.td"
 include "mlir/IR/OpBase.td"
+include "mlir/Interfaces/InferIntRangeInterface.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 
 class ModArith_Op<string mnemonic, list<Trait> traits = [Pure]> :
-        Op<ModArith_Dialect, mnemonic, traits> {
+        Op<ModArith_Dialect, mnemonic, traits # [DeclareOpInterfaceMethods<InferIntRangeInterface, ["inferResultRangesFromOptional"]>]> {
   let cppNamespace = "::mlir::heir::mod_arith";
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
 }
