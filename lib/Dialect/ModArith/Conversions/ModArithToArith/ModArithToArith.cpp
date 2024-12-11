@@ -246,11 +246,6 @@ struct ConvertMac : public OpConversionPattern<MacOp> {
   }
 };
 
-namespace rewrites {
-// In an inner namespace to avoid conflicts with canonicalization patterns
-#include "lib/Dialect/ModArith/Conversions/ModArithToArith/ModArithToArith.cpp.inc"
-}  // namespace rewrites
-
 struct ConvertBarrettReduce : public OpConversionPattern<BarrettReduceOp> {
   ConvertBarrettReduce(mlir::MLIRContext *context)
       : OpConversionPattern<BarrettReduceOp>(context) {}
@@ -264,9 +259,10 @@ struct ConvertBarrettReduce : public OpConversionPattern<BarrettReduceOp> {
 
     // Compute B = 4^{bitWidth} and ratio = floordiv(B / modulus)
     auto input = adaptor.getInput();
-    auto mod = op.getModulus();
+    auto modArithType = getResultModArithType(op);
+    auto mod = modArithType.getModulus().getValue();
     auto bitWidth = (mod - 1).getActiveBits();
-    mod = mod.trunc(3 * bitWidth);
+    mod = mod.zextOrTrunc(3 * bitWidth);
     auto B = APInt(3 * bitWidth, 1).shl(2 * bitWidth);
     auto barrettRatio = B.udiv(mod);
 
@@ -310,6 +306,30 @@ struct ConvertBarrettReduce : public OpConversionPattern<BarrettReduceOp> {
   }
 };
 
+struct ConvertSubIfGE : public OpConversionPattern<SubIfGEOp> {
+  ConvertSubIfGE(mlir::MLIRContext *context)
+      : OpConversionPattern<SubIfGEOp>(context) {}
+
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      SubIfGEOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override {
+    ImplicitLocOpBuilder b(op.getLoc(), rewriter);
+
+    auto x = adaptor.getLhs();
+
+    auto cmod = b.create<arith::ConstantOp>(modulusAttr(op));
+    auto sub = b.create<arith::SubIOp>(x, cmod);
+    auto cmp = b.create<arith::CmpIOp>(arith::CmpIPredicate::sge, x, cmod);
+    auto select = b.create<arith::SelectOp>(cmp, sub, x);
+
+    rewriter.replaceOp(op, select);
+
+    return success();
+  }
+};
+
 struct ModArithToArith : impl::ModArithToArithBase<ModArithToArith> {
   using ModArithToArithBase::ModArithToArithBase;
 
@@ -326,13 +346,12 @@ void ModArithToArith::runOnOperation() {
   target.addLegalDialect<arith::ArithDialect>();
 
   RewritePatternSet patterns(context);
-  rewrites::populateWithGenerated(patterns);
-  patterns
-      .add<ConvertEncapsulate, ConvertExtract, ConvertReduce, ConvertAdd,
-           ConvertSub, ConvertMul, ConvertMac, ConvertBarrettReduce,
-           ConvertConstant, ConvertAny<>, ConvertAny<affine::AffineForOp>,
-           ConvertAny<affine::AffineYieldOp>, ConvertAny<linalg::GenericOp> >(
-          typeConverter, context);
+  patterns.add<
+      ConvertEncapsulate, ConvertExtract, ConvertReduce, ConvertAdd, ConvertSub,
+      ConvertMul, ConvertMac, ConvertBarrettReduce, ConvertSubIfGE,
+      ConvertConstant, ConvertAny<>, ConvertAny<affine::AffineForOp>,
+      ConvertAny<affine::AffineYieldOp>, ConvertAny<linalg::GenericOp> >(
+      typeConverter, context);
 
   addStructuralConversionPatterns(typeConverter, patterns, target);
 

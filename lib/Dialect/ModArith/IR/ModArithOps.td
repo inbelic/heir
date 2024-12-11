@@ -169,36 +169,40 @@ def ModArith_MacOp : ModArith_Op<"mac", [SameOperandsAndResultType, Pure, Elemen
   let assemblyFormat = "operands attr-dict `:` type($output)";
 }
 
-// TODO(#1084): migrate barrett/subifge to mod arith type
 def ModArith_BarrettReduceOp : ModArith_Op<"barrett_reduce", [SameOperandsAndResultType]> {
   let summary = "Compute the first step of the Barrett reduction.";
   let description = [{
-    Let $q$ denote a statically known modulus and $b = 4^{w}$, where $w$ is the
-    smallest bit-width that contains the range $[0, q)$. The Barrett reduce
-    operation computes `barret_reduce x = x - floor(x * floor(b / q) / b) * q`.
+    Let $q$ denote the statically known modulus of the result type and
+    $b = 4^{w}$, where $w$ is the smallest bit-width that contains the range
+    $[0, q)$. Then `mod_arith.barret_reduce x` computes
+    $x - \floor(x * \floor(b / q) / b) * q`, or equivalently,
+    $(x \mod q)$ or $(x \mod q) + q$.
 
-    Given $0 <= x < q^2$, then this will compute $(x \mod q)$ or $(x \mod q) + q$.
+    Unless otherwise specified, the operation assumes the input is constrained
+    within $0 <= x < q^2$ and guarantees the output to be in $[0, 2q)$.
   }];
 
-  let arguments = (ins
-    SignlessIntegerLike:$input,
-    APIntAttr:$modulus
-  );
-  let results = (outs SignlessIntegerLike:$output);
+  let arguments = (ins ModArithLike:$input);
+  let results = (outs ModArithLike:$output);
   let assemblyFormat = "operands attr-dict `:` qualified(type($input))";
 
   let hasVerifier = 1;
 }
 
 def ModArith_SubIfGEOp : ModArith_Op<"subifge", [SameOperandsAndResultType]> {
-  let summary = "Compute (x >= y) ? x - y : x.";
+  let summary = "subtract if greater than or equal to modulus operation";
 
-  let arguments = (ins
-    SignlessIntegerLike:$lhs,
-    SignlessIntegerLike:$rhs
-  );
-  let results = (outs SignlessIntegerLike:$output);
+  let description = [{
+    `mod_arith.subifge x` computes $(x >= q) ? x - q : x$
+
+    Unless otherwise specified, the operation assumes the input is a positive
+    value and guarantees the output being canonical representative.
+  }];
+  let arguments = (ins ModArithLike:$lhs);
+  let results = (outs ModArithLike:$output);
   let assemblyFormat = "operands attr-dict `:` qualified(type($output))";
+
+  let hasVerifier = 1;
 }
 
 #endif  // LIB_DIALECT_MODARITH_IR_MODARITHOPS_TD_

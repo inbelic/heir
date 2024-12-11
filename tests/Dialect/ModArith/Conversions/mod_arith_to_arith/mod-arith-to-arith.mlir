@@ -179,75 +179,68 @@ func.func @test_lower_mac_vec(%lhs : !Zpv, %rhs : !Zpv, %acc : !Zpv) -> !Zpv {
   return %res : !Zpv
 }
 
-// -----
-
 // CHECK-LABEL: @test_lower_subifge
-// CHECK-SAME: (%[[LHS:.*]]: [[TENSOR_TYPE:.*]], %[[RHS:.*]]: [[TENSOR_TYPE]]) -> [[TENSOR_TYPE]] {
-func.func @test_lower_subifge(%lhs : tensor<4xi8>, %rhs : tensor<4xi8>) -> tensor<4xi8> {
+// CHECK-SAME: (%[[X:.*]]: [[T:.*]]) -> [[T]] {
+func.func @test_lower_subifge(%x : !Zp) -> !Zp {
+  // CHECK-NOT: mod_arith.subifge
+  // CHECK: %[[CMOD:.*]] = arith.constant 65537 : [[T]]
 
-  // CHECK: %[[SUB:.*]] = arith.subi %[[LHS]], %[[RHS]] : [[TENSOR_TYPE]]
-  // CHECK: %[[CMP:.*]] = arith.cmpi uge, %[[LHS]], %[[RHS]] : [[TENSOR_TYPE]]
-  // CHECK: %[[RES:.*]] = arith.select %[[CMP]], %[[SUB]], %[[LHS]] : tensor<4xi1>, [[TENSOR_TYPE]]
-  %res = mod_arith.subifge %lhs, %rhs: tensor<4xi8>
-  return %res : tensor<4xi8>
+  // CHECK: %[[SUB:.*]] = arith.subi %[[X]], %[[CMOD]] : [[T]]
+  // CHECK: %[[CMP:.*]] = arith.cmpi sge, %[[X]], %[[CMOD]] : [[T]]
+  // CHECK: %[[RES:.*]] = arith.select %[[CMP]], %[[SUB]], %[[X]] : [[T]]
+  %res = mod_arith.subifge %x : !Zp
+  return %res : !Zp
 }
 
-// -----
+// CHECK-LABEL: @test_lower_subifge_vec
+// CHECK-SAME: (%[[X:.*]]: [[T:.*]]) -> [[T]] {
+func.func @test_lower_subifge_vec(%x : !Zpv) -> !Zpv {
+  // CHECK-NOT: mod_arith.subifge
+  // CHECK: %[[CMOD:.*]] = arith.constant dense<65537> : [[T]]
 
-// CHECK-LABEL: @test_lower_subifge_int
-// CHECK-SAME: (%[[LHS:.*]]: [[INT_TYPE:.*]], %[[RHS:.*]]: [[INT_TYPE]]) -> [[INT_TYPE]] {
-func.func @test_lower_subifge_int(%lhs : i8, %rhs : i8) -> i8 {
-
-  // CHECK: %[[SUB:.*]] = arith.subi %[[LHS]], %[[RHS]] : [[INT_TYPE]]
-  // CHECK: %[[CMP:.*]] = arith.cmpi uge, %[[LHS]], %[[RHS]] : [[INT_TYPE]]
-  // CHECK: %[[RES:.*]] = arith.select %[[CMP]], %[[SUB]], %[[LHS]] : [[INT_TYPE]]
-  %res = mod_arith.subifge %lhs, %rhs: i8
-  return %res : i8
+  // CHECK: %[[SUB:.*]] = arith.subi %[[X]], %[[CMOD]] : [[T]]
+  // CHECK: %[[CMP:.*]] = arith.cmpi sge, %[[X]], %[[CMOD]] : [[T]]
+  // CHECK: %[[RES:.*]] = arith.select %[[CMP]], %[[SUB]], %[[X]] : tensor<4xi1>, [[T]]
+  %res = mod_arith.subifge %x : !Zpv
+  return %res : !Zpv
 }
-
-// -----
 
 // CHECK-LABEL: @test_lower_barrett_reduce
+// CHECK-SAME: (%[[X:.*]]: [[T:.*]]) -> [[T]] {
+func.func @test_lower_barrett_reduce(%arg : !Zp) -> !Zp {
 
-// CHECK-SAME: (%[[ARG:.*]]: [[TENSOR_TYPE:.*]]) -> [[TENSOR_TYPE]] {
-func.func @test_lower_barrett_reduce(%arg : tensor<4xi10>) -> tensor<4xi10> {
+  // CHECK: %[[RATIO:.*]] = arith.constant 262140 : [[INTER_TYPE:.*]]
+  // CHECK: %[[BITWIDTH:.*]] = arith.constant 34 : [[INTER_TYPE]]
+  // CHECK: %[[CMOD:.*]] = arith.constant 65537 : [[INTER_TYPE]]
 
-  // CHECK: %[[RATIO:.*]] = arith.constant dense<60> : [[INTER_TYPE:.*]]
-  // CHECK: %[[BITWIDTH:.*]] = arith.constant dense<10> : [[INTER_TYPE]]
-  // CHECK: %[[CMOD:.*]] = arith.constant dense<17> : [[INTER_TYPE]]
-
-  // CHECK: %[[EXT:.*]] = arith.extui %[[ARG]] : [[TENSOR_TYPE]] to [[INTER_TYPE]]
+  // CHECK: %[[EXT:.*]] = arith.extui %[[X]] : [[T]] to [[INTER_TYPE]]
   // CHECK: %[[MULRATIO:.*]] = arith.muli %[[EXT]], %[[RATIO]] : [[INTER_TYPE]]
   // CHECK: %[[SHIFTED:.*]] = arith.shrui %[[MULRATIO]], %[[BITWIDTH]] : [[INTER_TYPE]]
   // CHECK: %[[MULCMOD:.*]] = arith.muli %[[SHIFTED]], %[[CMOD]] : [[INTER_TYPE]]
   // CHECK: %[[SUB:.*]] = arith.subi %[[EXT]], %[[MULCMOD]] : [[INTER_TYPE]]
-  // CHECK: %[[RES:.*]] = arith.trunci %[[SUB]] : [[INTER_TYPE]] to [[TENSOR_TYPE]]
-  %res = mod_arith.barrett_reduce %arg { modulus = 17 } : tensor<4xi10>
+  // CHECK: %[[RES:.*]] = arith.trunci %[[SUB]] : [[INTER_TYPE]] to [[T]]
+  %res = mod_arith.barrett_reduce %arg : !Zp
 
-  // CHECK: return %[[RES]] : [[TENSOR_TYPE]]
-  return %res : tensor<4xi10>
+  // CHECK: return %[[RES]] : [[T]]
+  return %res : !Zp
 }
 
-// -----
+// CHECK-LABEL: @test_lower_barrett_reduce_vec
+// CHECK-SAME: (%[[X:.*]]: [[T:.*]]) -> [[T]] {
+func.func @test_lower_barrett_reduce_vec(%arg : !Zpv) -> !Zpv {
 
-// CHECK-LABEL: @test_lower_barrett_reduce_int
-// CHECK-SAME: (%[[ARG:.*]]: [[INT_TYPE:.*]]) -> [[INT_TYPE]] {
-func.func @test_lower_barrett_reduce_int(%arg : i10) -> i10 {
+  // CHECK: %[[RATIO:.*]] = arith.constant dense<262140> : [[INTER_TYPE:.*]]
+  // CHECK: %[[BITWIDTH:.*]] = arith.constant dense<34> : [[INTER_TYPE]]
+  // CHECK: %[[CMOD:.*]] = arith.constant dense<65537> : [[INTER_TYPE]]
 
-  // CHECK: %[[RATIO:.*]] = arith.constant 60 : [[INTER_TYPE:.*]]
-  // CHECK: %[[BITWIDTH:.*]] = arith.constant 10 : [[INTER_TYPE]]
-  // CHECK: %[[CMOD:.*]] = arith.constant 17 : [[INTER_TYPE]]
-
-  // CHECK: %[[EXT:.*]] = arith.extui %[[ARG]] : [[INT_TYPE]] to [[INTER_TYPE]]
+  // CHECK: %[[EXT:.*]] = arith.extui %[[X]] : [[T]] to [[INTER_TYPE]]
   // CHECK: %[[MULRATIO:.*]] = arith.muli %[[EXT]], %[[RATIO]] : [[INTER_TYPE]]
   // CHECK: %[[SHIFTED:.*]] = arith.shrui %[[MULRATIO]], %[[BITWIDTH]] : [[INTER_TYPE]]
   // CHECK: %[[MULCMOD:.*]] = arith.muli %[[SHIFTED]], %[[CMOD]] : [[INTER_TYPE]]
   // CHECK: %[[SUB:.*]] = arith.subi %[[EXT]], %[[MULCMOD]] : [[INTER_TYPE]]
-  // CHECK: %[[RES:.*]] = arith.trunci %[[SUB]] : [[INTER_TYPE]] to [[INT_TYPE]]
-  %res = mod_arith.barrett_reduce %arg { modulus = 17 } : i10
+  // CHECK: %[[RES:.*]] = arith.trunci %[[SUB]] : [[INTER_TYPE]] to [[T]]
+  %res = mod_arith.barrett_reduce %arg : !Zpv
 
-  // CHECK: return %[[RES]] : [[INT_TYPE]]
-  return %res : i10
+  // CHECK: return %[[RES]] : [[T]]
+  return %res : !Zpv
 }
-
-// -----

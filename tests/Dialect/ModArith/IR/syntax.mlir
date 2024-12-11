@@ -60,13 +60,13 @@ func.func @test_arith_syntax() {
 
   // CHECK: mod_arith.barrett_reduce
   // CHECK: mod_arith.barrett_reduce
-  %barrett = mod_arith.barrett_reduce %zero { modulus = 17 } : i10
-  %barrett_vec = mod_arith.barrett_reduce %c_vec { modulus = 17 } : tensor<4xi10>
+  %barrett = mod_arith.barrett_reduce %m5 : !Zp
+  %barrett_vec = mod_arith.barrett_reduce %m_vec : !Zp_vec
 
   // CHECK: mod_arith.subifge
   // CHECK: mod_arith.subifge
-  %subifge = mod_arith.subifge %zero, %cmod : i10
-  %subifge_vec = mod_arith.subifge %c_vec, %cmod_vec : tensor<4xi10>
+  %subifge = mod_arith.subifge %m5 : !Zp
+  %subifge_vec = mod_arith.subifge %m_vec : !Zp_vec
 
   return
 }
