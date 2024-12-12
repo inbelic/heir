@@ -195,8 +195,8 @@ def ModArith_SubIfGEOp : ModArith_Op<"subifge", [SameOperandsAndResultType]> {
   let description = [{
     `mod_arith.subifge x` computes $(x >= q) ? x - q : x$
 
-    Unless otherwise specified, the operation assumes the input is a positive
-    value and guarantees the output being canonical representative.
+    Unless otherwise specified, the operation assumes the input is constained
+    within $0 <= x < 2*q$ and guarantees the output being canonical representative.
   }];
   let arguments = (ins ModArithLike:$lhs);
   let results = (outs ModArithLike:$output);

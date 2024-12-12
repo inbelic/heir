@@ -76,15 +76,22 @@ void ModArithDialect::initialize() {
 
 /// Ensures that the underlying integer type is wide enough for the coefficient
 template <typename OpType>
-LogicalResult verifyModArithType(OpType op, ModArithType type) {
+LogicalResult verifyModArithType(OpType op, ModArithType type, unsigned modFactor = 1) {
   APInt modulus = type.getModulus().getValue();
   unsigned bitWidth = modulus.getBitWidth();
-  unsigned modWidth = modulus.getActiveBits();
-  if (modWidth > bitWidth - 1)
+  unsigned modWidth = (modFactor * modulus).getActiveBits();
+  if (modWidth > bitWidth - 1) {
+    if (modFactor == 1)
+      return op.emitOpError()
+             << "underlying type's bitwidth must be 1 bit larger than "
+             << "the modulus bitwidth, but got " << bitWidth
+             << " while modulus requires width " << modWidth << ".";
     return op.emitOpError()
-           << "underlying type's bitwidth must be 1 bit larger than "
-           << "the modulus bitwidth, but got " << bitWidth
-           << " while modulus requires width " << modWidth << ".";
+           << "the smallest bitwidth that fits " << modFactor
+           << " times the modulus (" << modulus.getZExtValue()
+           << "), but got " << bitWidth << " while it requires width "
+           << modWidth << ".";
+  }
   return success();
 }
 
@@ -138,11 +145,13 @@ LogicalResult MacOp::verify() {
 }
 
 LogicalResult BarrettReduceOp::verify() {
-  return verifyModArithType(*this, getResultModArithType(*this));
+  auto modType = getResultModArithType(*this);
+  unsigned modulus = modType.getModulus().getValue().getZExtValue();
+  return verifyModArithType(*this, modType, modulus);
 }
 
 LogicalResult SubIfGEOp::verify() {
-  return verifyModArithType(*this, getResultModArithType(*this));
+  return verifyModArithType(*this, getResultModArithType(*this), 2);
 }
 
 template <typename OpType>
@@ -217,39 +226,41 @@ void MacOp::inferResultRangesFromOptional(
 
 void BarrettReduceOp::inferResultRangesFromOptional(
     ArrayRef<mlir::IntegerValueRange> inputRanges, SetIntLatticeFn setResultRange) {
-  // TODO(#1084): update to using mod arith type
-  if (inputRanges[0].isUninitialized()) return;
-  auto q = getModulus();
-  auto zero = APInt(q.getBitWidth(), 0);
+  auto opRange = initCanonicalRange(*this);
+  if (inputRanges[0].isUninitialized() || opRange.isUninitialized()) return;
+
+  auto zero = opRange.getValue().smin();
+  auto mod = opRange.getValue().smax();
   auto inputRange = inputRanges[0].getValue();
-  if (inputRange.smin().slt(0) || inputRange.smax().sgt(q * q)) return;
-  auto max = inputRange.smax().slt(q) ? q : 2 * q;
-  auto outputRange = ConstantIntRanges::fromSigned(zero, max);
+  if (inputRange.smin().slt(0) || inputRange.smax().sgt(mod * mod)) return;
+  auto outputRange = ConstantIntRanges::fromSigned(zero, 2 * mod + 1);
   setResultRange(getResult(), IntegerValueRange{outputRange});
 }
 
 void SubIfGEOp::inferResultRangesFromOptional(
     ArrayRef<mlir::IntegerValueRange> inputRanges, SetIntLatticeFn setResultRange) {
-  // TODO(#1084): update to using mod arith type
-  if (inputRanges[0].isUninitialized() || inputRanges[1].isUninitialized()) return;
+  auto modType = dyn_cast<ModArithType>(getResult().getType());
+  if (inputRanges[0].isUninitialized() || !modType) return;
 
-  auto lhsRange = inputRanges[0].getValue();
-  auto rhsRange = inputRanges[1].getValue();
-  auto intersection = lhsRange.intersection(rhsRange);
-  bool intersected = intersection.smin().sle(intersection.smax());
+  auto mod = modType.getModulus().getValue();
+  auto xRange = inputRanges[0].getValue();
+  auto xMin = xRange.smin();
+  auto xMax = xRange.smax();
+  auto zero = APInt(mod.getBitWidth(), 0);
 
-  auto lhsMin = lhsRange.smin();
-  auto lhsMax = lhsRange.smax();
-  auto rhsMin = rhsRange.smin();
-  auto rhsMax = rhsRange.smax();
+  // Ensure positive constant
+  if (xMin.slt(0)) return;
 
-  // Default to the case that rhsMax < lhsMin and there will be a sub
-  ConstantIntRanges range
-     = ConstantIntRanges::fromSigned(lhsMin - rhsMax, rhsMax - lhsMin);
-  if (lhsMax.slt(rhsMin)) // When there will not be a sub
-    range = lhsRange;
-  else if (intersected) // When there will be a potential sub for the intersecting values
-    range = ConstantIntRanges::fromSigned(intersection.smin() - rhsMax, intersection.smin() - 1);
+  // Default to the case that xMin < mod < xMax which is the range of
+  // [0, xMax - mod] U [xMin, mod)
+  auto subRange = ConstantIntRanges::fromSigned(zero, mod - xMax);
+  auto nopRange = ConstantIntRanges::fromSigned(xMin, mod - 1);
+  auto range = subRange.rangeUnion(nopRange);
+     
+  if (xMax.slt(mod)) // No operation so same range as input
+    range = xRange;
+  else if (mod.sle(xMin)) // Will be a sub so shift input range by mod
+    range = ConstantIntRanges::fromSigned(xMin - mod, xMax - mod);
   
   setResultRange(getResult(), IntegerValueRange{range});
 }
