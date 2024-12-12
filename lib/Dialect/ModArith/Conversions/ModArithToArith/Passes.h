@@ -3,6 +3,7 @@
 
 #include "lib/Dialect/ModArith/Conversions/ModArithToArith/ModArithToArith.h"
 #include "lib/Dialect/ModArith/Conversions/ModArithToArith/PopulateModArith.h"
+#include "lib/Dialect/ModArith/Conversions/ModArithToArith/PopulateModArith.h"
 #include "lib/Dialect/ModArith/IR/ModArithDialect.h"
 
 namespace mlir {
