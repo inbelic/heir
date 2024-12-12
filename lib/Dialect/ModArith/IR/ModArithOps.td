@@ -69,6 +69,29 @@ def ModArith_ExtractOp : ModArith_Op<"extract", [Pure, ElementwiseMappable]> {
   let assemblyFormat = "operands attr-dict `:` type($input) `->` type($output)";
 }
 
+def ModArith_ConvertOp : ModArith_Op<"convert", [Pure, ElementwiseMappable]> {
+  let summary = "converts a mod_arith into another mod_arith type";
+
+  let description = [{
+    `mod_arith.cast` converts the mod_arith type to be of another mod_arith type.
+
+    This can be used to change the modulus and/or the storage type of the modulus.
+
+    Examples:
+    ```
+    mod_arith.convert %c0 : mod_arith.int<65537> -> mod_arith.int<65537 : i64>
+    mod_arith.convert %c1 : mod_arith.int<65537> -> mod_arith.int<131074>
+    mod_arith.convert %c2 : mod_arith.int<17 : i5> -> mod_arith.int<34 : i6>
+    ```
+  }];
+
+  let arguments = (ins ModArithLike:$input);
+  let results = (outs ModArithLike:$output);
+
+  let assemblyFormat = "operands attr-dict `:` type($input) `->` type($output)";
+  let hasFolder = 1;
+}
+
 def ModArith_ConstantOp : Op<ModArith_Dialect, "constant",
     [Pure, InferTypeOpAdaptor]> {
   let summary = "Define a constant value via an attribute.";

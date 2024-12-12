@@ -3,28 +3,35 @@
 !Zp = !mod_arith.int<17 : i10>
 !Zp_vec = tensor<4x!Zp>
 
+!Zp_1 = !mod_arith.int<17 : i6>
+!Zp_1_vec = tensor<4x!Zp_1>
+
 // CHECK-LABEL: @test_arith_syntax
 func.func @test_arith_syntax() {
   %zero = arith.constant 1 : i10
   %c4 = arith.constant 4 : i10
   %c5 = arith.constant 5 : i10
   %c6 = arith.constant 6 : i10
+  %c7 = arith.constant 7 : i6
   %cmod = arith.constant 17 : i10
   %c_vec = arith.constant dense<[1, 2, 3, 4]> : tensor<4xi10>
   %c_vec2 = arith.constant dense<[4, 3, 2, 1]> : tensor<4xi10>
   %c_vec3 = arith.constant dense<[1, 1, 1, 1]> : tensor<4xi10>
+  %c_vec4 = arith.constant dense<[7, 3, 8, 2]> : tensor<4xi6>
   %cmod_vec = arith.constant dense<17> : tensor<4xi10>
 
   // CHECK: mod_arith.constant 123 : !mod_arith.int<17 : i10>
   %const123 = mod_arith.constant 123 : !Zp
 
-  // CHECK-COUNT-6: mod_arith.encapsulate
+  // CHECK-COUNT-7: mod_arith.encapsulate
   %e4 = mod_arith.encapsulate %c4 : i10 -> !Zp
   %e5 = mod_arith.encapsulate %c5 : i10 -> !Zp
   %e6 = mod_arith.encapsulate %c6 : i10 -> !Zp
+  %e7 = mod_arith.encapsulate %c7 : i6 -> !Zp_1
   %e_vec = mod_arith.encapsulate %c_vec : tensor<4xi10> -> !Zp_vec
   %e_vec2 = mod_arith.encapsulate %c_vec2 : tensor<4xi10> -> !Zp_vec
   %e_vec3 = mod_arith.encapsulate %c_vec3 : tensor<4xi10> -> !Zp_vec
+  %e_vec4 = mod_arith.encapsulate %c_vec4 : tensor<4xi6> -> !Zp_1_vec
 
   // CHECK-COUNT-6: mod_arith.reduce
   %m4 = mod_arith.reduce %e4 : !Zp
@@ -37,6 +44,11 @@ func.func @test_arith_syntax() {
   // CHECK: mod_arith.extract
   %extract = mod_arith.extract %m4 : !Zp -> i10
   %extract_vec = mod_arith.extract %m_vec : !Zp_vec -> tensor<4xi10>
+
+  // CHECK: mod_arith.convert
+  // CHECK: mod_arith.convert
+  %m7 = mod_arith.convert %e7 : !Zp_1 -> !Zp
+  %m_vec4 = mod_arith.convert %e_vec4 : !Zp_1_vec -> !Zp_vec
 
   // CHECK: mod_arith.add
   // CHECK: mod_arith.add

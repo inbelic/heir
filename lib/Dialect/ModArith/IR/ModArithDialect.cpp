@@ -199,6 +199,11 @@ void ExtractOp::inferResultRangesFromOptional(
   setResultRange(getResult(), inputRanges[0]);
 }
 
+void ConvertOp::inferResultRangesFromOptional(
+    ArrayRef<mlir::IntegerValueRange> inputRanges, SetIntLatticeFn setResultRange) {
+  setResultRange(getResult(), inputRanges[0]);
+}
+
 void ReduceOp::inferResultRangesFromOptional(
     ArrayRef<mlir::IntegerValueRange> inputRanges, SetIntLatticeFn setResultRange) {
   setResultRange(getResult(), initCanonicalRange(*this));
@@ -263,6 +268,12 @@ void SubIfGEOp::inferResultRangesFromOptional(
     range = ConstantIntRanges::fromSigned(xMin - mod, xMax - mod);
   
   setResultRange(getResult(), IntegerValueRange{range});
+}
+
+OpFoldResult ConvertOp::fold(FoldAdaptor adaptor) {
+  if (getInput().getType() == getOutput().getType())
+    return getInput();
+  return {};
 }
 
 ParseResult ConstantOp::parse(OpAsmParser &parser, OperationState &result) {
