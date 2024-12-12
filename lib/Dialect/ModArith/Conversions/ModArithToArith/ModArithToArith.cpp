@@ -29,7 +29,7 @@ namespace heir {
 namespace mod_arith {
 
 #define GEN_PASS_DEF_MODARITHTOARITH
-#include "lib/Dialect/ModArith/Conversions/ModArithToArith/ModArithToArith.h.inc"
+#include "lib/Dialect/ModArith/Conversions/ModArithToArith/Passes.h.inc"
 
 IntegerType convertModArithType(ModArithType type) {
   APInt modulus = type.getModulus().getValue();

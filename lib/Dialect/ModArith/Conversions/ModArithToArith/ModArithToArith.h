@@ -8,11 +8,8 @@ namespace mlir {
 namespace heir {
 namespace mod_arith {
 
-#define GEN_PASS_DECL
-#include "lib/Dialect/ModArith/Conversions/ModArithToArith/ModArithToArith.h.inc"
-
-#define GEN_PASS_REGISTRATION
-#include "lib/Dialect/ModArith/Conversions/ModArithToArith/ModArithToArith.h.inc"
+#define GEN_PASS_DECL_MODARITHTOARITH
+#include "lib/Dialect/ModArith/Conversions/ModArithToArith/Passes.h.inc"
 
 }  // namespace mod_arith
 }  // namespace heir

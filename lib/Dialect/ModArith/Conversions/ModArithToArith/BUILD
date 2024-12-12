@@ -6,6 +6,19 @@ package(
 )
 
 cc_library(
+    name = "Conversions",
+    hdrs = [
+        "Passes.h",
+    ],
+    deps = [
+        ":ModArithToArith",
+        ":PopulateModArith",
+        ":pass_inc_gen",
+        "@heir//lib/Dialect/ModArith/IR:Dialect",
+    ],
+)
+
+cc_library(
     name = "ModArithToArith",
     srcs = ["ModArithToArith.cpp"],
     hdrs = [
@@ -35,11 +48,11 @@ gentbl_cc_library(
                 "-gen-pass-decls",
                 "-name=ModArithToArith",
             ],
-            "ModArithToArith.h.inc",
+            "Passes.h.inc",
         ),
         (
             ["-gen-rewriters"],
-            "ModArithToArith.cpp.inc",
+            "Passes.cpp.inc",
         ),
         (
             ["-gen-pass-doc"],
@@ -47,7 +60,7 @@ gentbl_cc_library(
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "ModArithToArith.td",
+    td_file = "Passes.td",
     deps = [
         "@heir//lib/Dialect/ModArith/IR:ops_inc_gen",
         "@heir//lib/Dialect/ModArith/IR:td_files",

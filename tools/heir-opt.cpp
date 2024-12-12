@@ -19,7 +19,7 @@
 #include "lib/Dialect/LWE/IR/LWEDialect.h"
 #include "lib/Dialect/LWE/Transforms/Passes.h"
 #include "lib/Dialect/LinAlg/Conversions/LinalgToTensorExt/LinalgToTensorExt.h"
-#include "lib/Dialect/ModArith/Conversions/ModArithToArith/ModArithToArith.h"
+#include "lib/Dialect/ModArith/Conversions/ModArithToArith/Passes.h"
 #include "lib/Dialect/ModArith/IR/ModArithDialect.h"
 #include "lib/Dialect/Openfhe/IR/OpenfheDialect.h"
 #include "lib/Dialect/Openfhe/Transforms/Passes.h"
